@@ -1,19 +1,41 @@
-const express  = require("express");
-const morgan = require("morgan");
-const cors = require ("cors");
 require("dotenv/config");
+
+const express = require("express");
+const morgan = require("morgan");
+const cors = require("cors");
+const helmet = require("helmet");
+const { errorHandler, notFound } = require("./src/middleware/errorHandler");
+const prisma = require("./src/config/prisma");
 
 const app = express();
 const env = process.env;
 const port = env.PORT;
 const host = env.HOSTNAME;
-const api = env.API_URL
+const api = env.API_URL;
 
+// Midleware
+app.use(helmet());
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(cors());
 
-app.listen(port, host, () => {
-    console.log(`Server running at http://${host}:${port}`)
-})
+// Error Handling
+app.use(notFound);
+app.use(errorHandler);
+
+async function bootsrap() {
+  try {
+    await prisma.$connect();
+    console.log("Connected to MySQL via Prisma");
+
+    app.listen(port, host, () => {
+      console.log(`Server running at http://${host}:${port}`);
+    });
+  } catch (err) {
+    console.log("Failed to start server: ", err);
+    process.exit(1);
+  }
+}
+
+bootsrap()
