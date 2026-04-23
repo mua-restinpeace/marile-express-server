@@ -1,0 +1,113 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id            String          @id @default(uuid())
+  name          String
+  username      String          @unique
+  password      String
+  role          Role
+  is_active     Boolean
+  refreshToken  RefreshToken?
+  transactions  Transactions[]
+  inventoryLogs InventoryLogs[]
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   @unique
+  token      String
+  expired_at DateTime
+  created_at DateTime @default(now())
+}
+
+model Products {
+  id               String             @id @default(uuid())
+  name             String
+  description      String?
+  category         String
+  price            Float
+  stock            Int                @default(0)
+  unit             Unit               @default(kg)
+  image_url        String?
+  created_at       DateTime           @default(now())
+  updated_at       DateTime           @updatedAt
+  transactionItems TransactionItems[]
+  inventoryLogs    InventoryLogs[]
+}
+
+model Transactions {
+  id               String             @id @default(uuid())
+  cashier          User               @relation(fields: [cashierId], references: [id])
+  cashierId        String
+  invoice_no       String             @unique
+  payment_method   PaymentMethod      @default(Cash)
+  total            Float
+  status           Status             @default(completed)
+  dateTime         DateTime           @default(now())
+  transactionItems TransactionItems[]
+}
+
+model TransactionItems {
+  id             String       @id @default(uuid())
+  transaction    Transactions @relation(fields: [transactionsId], references: [id])
+  transactionsId String
+  product        Products     @relation(fields: [productsId], references: [id])
+  productsId     String
+  product_name   String
+  quantity       Int
+  unit_price     Float
+  sub_total      Float
+}
+
+model InventoryLogs {
+  id         String   @id @default(uuid())
+  product    Products @relation(fields: [productsId], references: [id])
+  productsId String
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String
+  type       LogsType
+  note       String?
+  quantity   Int
+  created_at DateTime @default(now())
+}
+
+enum Role {
+  admin
+  cashier
+}
+
+enum Unit {
+  kg
+  pcs
+}
+
+enum PaymentMethod {
+  Cash
+  Qris
+  BankTransfer
+}
+
+enum Status {
+  completed
+  canceled
+}
+
+enum LogsType {
+  restock
+  sale
+  adjustment
+  void
+}

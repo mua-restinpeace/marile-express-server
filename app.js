@@ -1,5 +1,4 @@
 const express  = require("express");
-const bodyParser = require("body-parser");
 const morgan = require("morgan");
 const cors = require ("cors");
 require("dotenv/config");
@@ -10,8 +9,9 @@ const port = env.PORT;
 const host = env.HOSTNAME;
 const api = env.API_URL
 
-app.use(bodyParser.json());
-app.use(morgan("tiny"));
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
+app.use(morgan("dev"));
 app.use(cors());
 
 app.listen(port, host, () => {
