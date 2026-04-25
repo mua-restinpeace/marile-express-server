@@ -4,6 +4,8 @@ const express = require("express");
 const morgan = require("morgan");
 const cors = require("cors");
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
+
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
 const prisma = require("./src/config/prisma");
 
@@ -19,6 +21,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 app.use(cors());
+app.use(cookieParser());
+
+// Routes
+const authRouter = require('./src/routes/auth');
+app.use(`${api}/`, authRouter);
 
 // Error Handling
 app.use(notFound);

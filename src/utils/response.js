@@ -1,4 +1,4 @@
-const success = (req, data = null, message = "Success", statusCode = 200) =>
+const success = (res, data = null, message = "Success", statusCode = 200) =>
   res.status(statusCode).json({ success: true, message, data });
 
 const error = (
