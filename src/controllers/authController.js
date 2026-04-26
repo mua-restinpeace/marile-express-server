@@ -23,6 +23,11 @@ const ACCESS_COOKIE = {
   maxAge: 15 * 60 * 1000,
 };
 
+/**
+ * POST /api/auth/login
+ * create refresh & access token
+ * body: { username, password}
+ */
 async function login(req, res) {
   try {
     const { username, password } = req.body;
@@ -76,6 +81,11 @@ async function login(req, res) {
   }
 }
 
+/**
+ * POST /api/auth/refresh
+ * refresh access token life
+ * cookie: refresh_token
+ */
 async function refreshToken(req, res) {
   try {
     const token = req.cookies?.refresh_token;
@@ -132,6 +142,12 @@ async function refreshToken(req, res) {
   }
 }
 
+/**
+ * POST /api/auth/logout
+ * clear access & refresh token from cookie
+ * cookie: refresh_token
+ * body: { refresh_token }
+ */
 async function logout(req, res) {
   try {
     const token = req.cookies?.refresh_token || req.body?.refresh_token;
@@ -147,6 +163,10 @@ async function logout(req, res) {
   }
 }
 
+/**
+ * GET /api/auth/me
+ * return active user info
+ */
 async function getMe(req, res) {
   try {
     const user = await prisma.user.findUnique({

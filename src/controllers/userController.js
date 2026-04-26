@@ -2,6 +2,10 @@ const bcryptjs = require("bcryptjs");
 const prisma = require("../config/prisma");
 const { success, error } = require("../utils/response");
 
+/**
+ * GET /api/users
+ * Admin only: get list of users
+ */
 async function listUsers(req, res) {
   try {
     const users = await prisma.user.findMany({
@@ -21,6 +25,11 @@ async function listUsers(req, res) {
   }
 }
 
+/**
+ * POST /api/users
+ * Admin only: create user
+ * body: { name, username, password, role }
+ */
 async function createUser(req, res) {
   try {
     const { name, username, password, role } = req.body;
@@ -58,6 +67,12 @@ async function createUser(req, res) {
   }
 }
 
+/**
+ * PUT /api/users/:id
+ * Admin only: update user
+ * body: { name?, role?, username?, is_active?}
+ * params: id (a user id)
+ */
 async function updateUser(req, res) {
   try {
     const id = req.params.id;
@@ -92,6 +107,11 @@ async function updateUser(req, res) {
   }
 }
 
+/**
+ * DELETE /api/users/:id
+ * Admin only: deactivate user
+ * params: id (a user id)
+ */
 async function deleteUser(req, res) {
   try {
     const id = req.params.id;

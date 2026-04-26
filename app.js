@@ -26,9 +26,11 @@ app.use(cookieParser());
 // Routes
 const authRouter = require('./src/routes/auth');
 const userRouter = require('./src/routes/user');
+const inventoryRouter = require('./src/routes/inventory');
 
-app.use(`${api}/auth/`, authRouter);
-app.use(`${api}/users/`, userRouter)
+app.use(`${api}/auth`, authRouter);
+app.use(`${api}/users`, userRouter);
+app.use(`${api}/inventory`, inventoryRouter);
 
 // Error Handling
 app.use(notFound);
