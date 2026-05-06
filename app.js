@@ -28,11 +28,13 @@ const authRouter = require('./src/routes/auth');
 const userRouter = require('./src/routes/user');
 const inventoryRouter = require('./src/routes/inventory');
 const productRouter = require('./src/routes/products');
+const transactionRouter = require('./src/routes/transactions');
 
 app.use(`${api}/products`, productRouter);
 app.use(`${api}/auth`, authRouter);
 app.use(`${api}/users`, userRouter);
 app.use(`${api}/inventory`, inventoryRouter);
+app.use(`${api}/transactions`, transactionRouter);
 
 // Error Handling
 app.use(notFound);
