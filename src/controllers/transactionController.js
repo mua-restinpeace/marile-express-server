@@ -85,7 +85,7 @@ async function createTransaction(req, res) {
     // check stock availability for all items
     for (const item of items) {
       const product = productMap[item.productsId];
-      const qty = parseFloat(productMap[item.quantity]);
+      const qty = parseFloat(item.quantity);
 
       if (parseFloat(product.stock) < qty)
         return (
