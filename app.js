@@ -29,12 +29,16 @@ const userRouter = require('./src/routes/user');
 const inventoryRouter = require('./src/routes/inventory');
 const productRouter = require('./src/routes/products');
 const transactionRouter = require('./src/routes/transactions');
+const dashboardRouter = require('./src/routes/dashboard');
+const { seed } = require("./src/seeder");
 
 app.use(`${api}/products`, productRouter);
 app.use(`${api}/auth`, authRouter);
 app.use(`${api}/users`, userRouter);
 app.use(`${api}/inventory`, inventoryRouter);
 app.use(`${api}/transactions`, transactionRouter);
+app.use(`${api}/dashboard`, dashboardRouter);
+
 
 // Error Handling
 app.use(notFound);
@@ -44,6 +48,7 @@ async function bootsrap() {
   try {
     await prisma.$connect();
     console.log("Connected to MySQL via Prisma");
+    await seed();
 
     app.listen(port, host, () => {
       console.log(`Server running at http://${host}:${port}`);
