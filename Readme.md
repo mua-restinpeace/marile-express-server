@@ -29,14 +29,14 @@ Built with **Express.js**, **Prisma ORM**, and **MySQL**.
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Express.js |
-| ORM | Prisma v6 |
-| Database | MySQL (via Laragon) |
-| Authentication | JWT (access + refresh token rotation) |
-| Password Hashing | bcryptjs (cost factor 12) |
-| Runtime | Node.js v18+ |
+| Layer            | Technology                            |
+| ---------------- | ------------------------------------- |
+| Framework        | Express.js                            |
+| ORM              | Prisma v6                             |
+| Database         | MySQL (via Laragon)                   |
+| Authentication   | JWT (access + refresh token rotation) |
+| Password Hashing | bcryptjs (cost factor 12)             |
+| Runtime          | Node.js v18+                          |
 
 ---
 
@@ -81,22 +81,22 @@ marile-api/
 
 The system has two authenticated roles. Public (unauthenticated) users have no access to any API endpoint in this version.
 
-| Feature | Admin | Cashier |
-|---|:---:|:---:|
-| Login / Logout | ✅ | ✅ |
-| View own profile | ✅ | ✅ |
-| Change own password | ✅ | ✅ |
-| Manage staff accounts | ✅ | ❌ |
-| View products | ✅ | ✅ |
-| Create / Edit / Delete products | ✅ | ❌ |
-| Restock & adjust inventory | ✅ | ❌ |
-| View inventory logs | ✅ | ❌ |
-| Create transactions | ✅ | ✅ |
-| View own transactions | ✅ | ✅ |
-| View all transactions | ✅ | ❌ |
-| Void own transactions | ✅ | ✅ |
-| Void any transaction | ✅ | ❌ |
-| Dashboard & reports | ✅ | ❌ |
+| Feature                         | Admin | Cashier |
+| ------------------------------- | :---: | :-----: |
+| Login / Logout                  |  ✅   |   ✅    |
+| View own profile                |  ✅   |   ✅    |
+| Change own password             |  ✅   |   ✅    |
+| Manage staff accounts           |  ✅   |   ❌    |
+| View products                   |  ✅   |   ✅    |
+| Create / Edit / Delete products |  ✅   |   ❌    |
+| Restock & adjust inventory      |  ✅   |   ❌    |
+| View inventory logs             |  ✅   |   ❌    |
+| Create transactions             |  ✅   |   ✅    |
+| View own transactions           |  ✅   |   ✅    |
+| View all transactions           |  ✅   |   ❌    |
+| Void own transactions           |  ✅   |   ✅    |
+| Void any transaction            |  ✅   |   ❌    |
+| Dashboard & reports             |  ✅   |   ❌    |
 
 ---
 
@@ -141,6 +141,10 @@ Laragon's default MySQL has no password, so the default `DATABASE_URL` works out
 npm run db:migrate
 ```
 
+```bash
+npm run db:generate
+```
+
 This reads `prisma/schema.prisma`, generates the SQL, and creates all tables in MySQL.
 
 ### 5. Start the server
@@ -159,15 +163,16 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|---|---|---|
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment (`development` / `production`) | `development` |
-| `DATABASE_URL` | MySQL connection string | `mysql://root:@localhost:3306/marile_db` |
-| `JWT_ACCESS_SECRET` | Secret key for access tokens | ⚠️ Change this |
-| `JWT_REFRESH_SECRET` | Secret key for refresh tokens | ⚠️ Change this |
-| `JWT_ACCESS_EXPIRES_IN` | Access token lifetime | `15m` |
-| `JWT_REFRESH_EXPIRES_IN` | Refresh token lifetime | `7d` |
+| Variable                 | Description                                | Default                                  |
+| ------------------------ | ------------------------------------------ | ---------------------------------------- |
+| `PORT`                   | Server port                                | `3000`                                   |
+| `NODE_ENV`               | Environment (`development` / `production`) | `development`                            |
+| `DATABASE_URL`           | MySQL connection string                    | `mysql://root:@localhost:3306/marile_db` |
+| `JWT_ACCESS_SECRET`      | Secret key for access tokens               | ⚠️ Change this                           |
+| `JWT_REFRESH_SECRET`     | Secret key for refresh tokens              | ⚠️ Change this                           |
+| `JWT_ACCESS_EXPIRES_IN`  | Access token lifetime                      | `15m`                                    |
+| `JWT_REFRESH_EXPIRES_IN` | Refresh token lifetime                     | `7d`                                     |
+
 ---
 
 ## Database Schema
@@ -176,76 +181,76 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 
 **`User`** — Staff accounts (admin and cashier only)
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `name` | `String` | Display name |
-| `username` | `String` | Unique, lowercase |
-| `password` | `String` | bcrypt hashed |
-| `role` | `Enum` | `admin` or `cashier` |
-| `is_active` | `Boolean` | Soft-delete flag |
-| `created_at` | `DateTime` | |
-| `updated_at` | `DateTime` | Auto-updated |
+| Field        | Type            | Notes                |
+| ------------ | --------------- | -------------------- |
+| `id`         | `String` (UUID) | Primary key          |
+| `name`       | `String`        | Display name         |
+| `username`   | `String`        | Unique, lowercase    |
+| `password`   | `String`        | bcrypt hashed        |
+| `role`       | `Enum`          | `admin` or `cashier` |
+| `is_active`  | `Boolean`       | Soft-delete flag     |
+| `created_at` | `DateTime`      |                      |
+| `updated_at` | `DateTime`      | Auto-updated         |
 
 **`RefreshToken`** — Active sessions per user
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `userId` | `String` | FK → User (not unique — supports multiple devices) |
-| `token` | `String` | Unique, max 512 chars |
-| `expired_at` | `DateTime` | |
+| Field        | Type            | Notes                                              |
+| ------------ | --------------- | -------------------------------------------------- |
+| `id`         | `String` (UUID) | Primary key                                        |
+| `userId`     | `String`        | FK → User (not unique — supports multiple devices) |
+| `token`      | `String`        | Unique, max 512 chars                              |
+| `expired_at` | `DateTime`      |                                                    |
 
 **`Product`** — Fish and related products
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `name` | `String` | Must be unique |
-| `description` | `String?` | Optional |
-| `category` | `Enum` | `protein`, `sayur`, `buah`, `lainnya` |
-| `price` | `Decimal(12,2)` | Per unit |
-| `stock` | `Decimal(10,3)` | Supports fractional weights (e.g. 0.5 kg) |
-| `unit` | `Enum` | `kg`, `pcs`, `ekor` |
-| `image_url` | `String?` | URL string only |
-| `is_active` | `Boolean` | Soft-delete flag |
-| `created_at` | `DateTime` | |
-| `updated_at` | `DateTime` | Auto-updated |
+| Field         | Type            | Notes                                     |
+| ------------- | --------------- | ----------------------------------------- |
+| `id`          | `String` (UUID) | Primary key                               |
+| `name`        | `String`        | Must be unique                            |
+| `description` | `String?`       | Optional                                  |
+| `category`    | `Enum`          | `protein`, `sayur`, `buah`, `lainnya`     |
+| `price`       | `Decimal(12,2)` | Per unit                                  |
+| `stock`       | `Decimal(10,3)` | Supports fractional weights (e.g. 0.5 kg) |
+| `unit`        | `Enum`          | `kg`, `pcs`, `ekor`                       |
+| `image_url`   | `String?`       | URL string only                           |
+| `is_active`   | `Boolean`       | Soft-delete flag                          |
+| `created_at`  | `DateTime`      |                                           |
+| `updated_at`  | `DateTime`      | Auto-updated                              |
 
 **`Transaction`** — Sales records
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `invoice_no` | `String` | Auto-generated: `INV-YYYYMMDD-XXXX` |
-| `cashierId` | `String` | FK → User |
-| `payment_method` | `Enum` | `Cash`, `Qris`, `BankTransfer` |
-| `total` | `Decimal(12,2)` | Calculated from items |
-| `amount_paid` | `Decimal(12,2)?` | Required for Cash |
-| `change` | `Decimal(12,2)?` | Calculated for Cash |
-| `status` | `Enum` | `completed`, `canceled` |
+| Field            | Type             | Notes                               |
+| ---------------- | ---------------- | ----------------------------------- |
+| `id`             | `String` (UUID)  | Primary key                         |
+| `invoice_no`     | `String`         | Auto-generated: `INV-YYYYMMDD-XXXX` |
+| `cashierId`      | `String`         | FK → User                           |
+| `payment_method` | `Enum`           | `Cash`, `Qris`, `BankTransfer`      |
+| `total`          | `Decimal(12,2)`  | Calculated from items               |
+| `amount_paid`    | `Decimal(12,2)?` | Required for Cash                   |
+| `change`         | `Decimal(12,2)?` | Calculated for Cash                 |
+| `status`         | `Enum`           | `completed`, `canceled`             |
 
 **`TransactionItem`** — Line items within a transaction
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `transactionsId` | `String` | FK → Transaction |
-| `product_name` | `String` | Snapshot of name at time of sale |
-| `quantity` | `Decimal(10,3)` | |
-| `unit_price` | `Decimal(12,2)` | Snapshot of price at time of sale |
-| `sub_total` | `Decimal(12,2)` | `quantity × unit_price` |
+| Field            | Type            | Notes                             |
+| ---------------- | --------------- | --------------------------------- |
+| `id`             | `String` (UUID) | Primary key                       |
+| `transactionsId` | `String`        | FK → Transaction                  |
+| `product_name`   | `String`        | Snapshot of name at time of sale  |
+| `quantity`       | `Decimal(10,3)` |                                   |
+| `unit_price`     | `Decimal(12,2)` | Snapshot of price at time of sale |
+| `sub_total`      | `Decimal(12,2)` | `quantity × unit_price`           |
 
 **`InventoryLog`** — Every stock movement, ever
 
-| Field | Type | Notes |
-|---|---|---|
-| `id` | `String` (UUID) | Primary key |
-| `productsId` | `String` | FK → Product |
-| `type` | `Enum` | `restock`, `sale`, `adjustment`, `void` |
-| `quantity` | `Decimal(10,3)` | Negative for outgoing stock (sales) |
-| `note` | `String?` | Required for `adjustment` type |
-| `created_by` | `String?` | FK → User |
+| Field        | Type            | Notes                                   |
+| ------------ | --------------- | --------------------------------------- |
+| `id`         | `String` (UUID) | Primary key                             |
+| `productsId` | `String`        | FK → Product                            |
+| `type`       | `Enum`          | `restock`, `sale`, `adjustment`, `void` |
+| `quantity`   | `Decimal(10,3)` | Negative for outgoing stock (sales)     |
+| `note`       | `String?`       | Required for `adjustment` type          |
+| `created_by` | `String?`       | FK → User                               |
 
 ---
 
@@ -268,6 +273,7 @@ All responses follow a consistent envelope:
 Authenticate a staff member and receive tokens.
 
 **Request body:**
+
 ```json
 {
   "username": "admin",
@@ -276,12 +282,18 @@ Authenticate a staff member and receive tokens.
 ```
 
 **Response `200`:**
+
 ```json
 {
   "success": true,
   "message": "Login successful",
   "data": {
-    "user": { "id": "...", "name": "Administrator", "username": "admin", "role": "admin" },
+    "user": {
+      "id": "...",
+      "name": "Administrator",
+      "username": "admin",
+      "role": "admin"
+    },
     "access_token": "eyJ..."
   }
 }
@@ -296,11 +308,13 @@ Tokens are also set as `httpOnly` cookies (`access_token`, `refresh_token`).
 Exchange a valid refresh token for a new access token. Old refresh token is deleted (rotation).
 
 Reads from cookie automatically, or pass in body:
+
 ```json
 { "refresh_token": "eyJ..." }
 ```
 
 **Response `200`:**
+
 ```json
 { "data": { "access_token": "eyJ..." } }
 ```
@@ -324,10 +338,17 @@ Revoke all refresh tokens for the current user (logs out all devices).
 Return the currently authenticated user's profile.
 
 **Response `200`:**
+
 ```json
 {
   "data": {
-    "user": { "id": "...", "name": "Administrator", "username": "admin", "role": "admin", "created_at": "..." }
+    "user": {
+      "id": "...",
+      "name": "Administrator",
+      "username": "admin",
+      "role": "admin",
+      "created_at": "..."
+    }
   }
 }
 ```
@@ -388,16 +409,17 @@ List products with optional filters.
 
 **Query parameters:**
 
-| Param | Type | Description |
-|---|---|---|
-| `search` | `string` | Search name or description |
-| `category` | `string` | Filter by category |
-| `unit` | `string` | Filter by unit |
-| `is_active` | `boolean` | `true` or `false` |
-| `page` | `number` | Default `1` |
-| `limit` | `number` | Default `20`, max `100` |
+| Param       | Type      | Description                |
+| ----------- | --------- | -------------------------- |
+| `search`    | `string`  | Search name or description |
+| `category`  | `string`  | Filter by category         |
+| `unit`      | `string`  | Filter by unit             |
+| `is_active` | `boolean` | `true` or `false`          |
+| `page`      | `number`  | Default `1`                |
+| `limit`     | `number`  | Default `20`, max `100`    |
 
 **Response `200`:**
+
 ```json
 {
   "data": {
@@ -436,6 +458,7 @@ Partial update — only include fields you want to change. **`stock` cannot be c
 #### `DELETE /api/products/:id` 🔒 Admin
 
 Smart delete:
+
 - If the product has no transaction history → **permanently deleted**
 - If the product has transaction history → **soft-deleted** (`is_active = false`)
 
@@ -458,6 +481,7 @@ Add stock to a product. Always creates an inventory log entry.
 ```
 
 **Response `201`:**
+
 ```json
 {
   "data": {
@@ -485,12 +509,12 @@ Paginated log of all stock movements.
 
 **Query parameters:**
 
-| Param | Type | Description |
-|---|---|---|
-| `productsId` | `string` | Filter by product |
-| `type` | `string` | `restock`, `sale`, `adjustment`, `void` |
-| `page` | `number` | Default `1` |
-| `limit` | `number` | Default `20` |
+| Param        | Type     | Description                             |
+| ------------ | -------- | --------------------------------------- |
+| `productsId` | `string` | Filter by product                       |
+| `type`       | `string` | `restock`, `sale`, `adjustment`, `void` |
+| `page`       | `number` | Default `1`                             |
+| `limit`      | `number` | Default `20`                            |
 
 #### `GET /api/inventory/low-stock` 🔒 Admin
 
@@ -498,9 +522,9 @@ Products at or below the stock threshold.
 
 **Query parameters:**
 
-| Param | Type | Default |
-|---|---|---|
-| `threshold` | `number` | `5` |
+| Param       | Type     | Default |
+| ----------- | -------- | ------- |
+| `threshold` | `number` | `5`     |
 
 ---
 
@@ -529,6 +553,7 @@ Create a new transaction. This is the core POS action.
 > `amount_paid` is required for `Cash` payments. Optional for `Qris` and `BankTransfer`.
 
 **Response `201`:**
+
 ```json
 {
   "data": {
@@ -555,13 +580,13 @@ List transactions with filters.
 
 **Query parameters:**
 
-| Param | Type | Description |
-|---|---|---|
-| `status` | `string` | `completed` or `canceled` |
+| Param            | Type     | Description                    |
+| ---------------- | -------- | ------------------------------ |
+| `status`         | `string` | `completed` or `canceled`      |
 | `payment_method` | `string` | `Cash`, `Qris`, `BankTransfer` |
-| `date` | `string` | Format: `YYYY-MM-DD` |
-| `page` | `number` | Default `1` |
-| `limit` | `number` | Default `20` |
+| `date`           | `string` | Format: `YYYY-MM-DD`           |
+| `page`           | `number` | Default `1`                    |
+| `limit`          | `number` | Default `20`                   |
 
 #### `GET /api/transactions/:id` 🔒 Admin, Cashier
 
@@ -592,16 +617,20 @@ Key business metrics for a given period.
 
 **Query parameters:**
 
-| Param | Values | Default |
-|---|---|---|
+| Param    | Values                   | Default |
+| -------- | ------------------------ | ------- |
 | `period` | `today`, `week`, `month` | `today` |
 
 **Response `200`:**
+
 ```json
 {
   "data": {
     "period": "today",
-    "date_range": { "from": "2025-05-09T00:00:00.000Z", "to": "2025-05-09T14:30:00.000Z" },
+    "date_range": {
+      "from": "2025-05-09T00:00:00.000Z",
+      "to": "2025-05-09T14:30:00.000Z"
+    },
     "total_revenue": 190000,
     "total_transactions": 3,
     "total_items_sold": 8.5,
@@ -617,11 +646,12 @@ Day-by-day or month-by-month revenue trend. All dates are filled in — no gaps 
 
 **Query parameters:**
 
-| Param | Values | Default |
-|---|---|---|
-| `range` | `30d`, `12m` | `30d` |
+| Param   | Values       | Default |
+| ------- | ------------ | ------- |
+| `range` | `30d`, `12m` | `30d`   |
 
 **Response `200` (30d):**
+
 ```json
 {
   "data": {
@@ -642,11 +672,12 @@ Top 5 products ranked by quantity sold and by revenue. Returns both lists.
 
 **Query parameters:**
 
-| Param | Values | Default |
-|---|---|---|
+| Param    | Values                          | Default |
+| -------- | ------------------------------- | ------- |
 | `period` | `today`, `week`, `month`, `all` | `today` |
 
 **Response `200`:**
+
 ```json
 {
   "data": {
@@ -665,6 +696,7 @@ Top 5 products ranked by quantity sold and by revenue. Returns both lists.
 Operational pulse — no query params, always reflects right now.
 
 **Response `200`:**
+
 ```json
 {
   "data": {
@@ -723,14 +755,14 @@ All errors return a consistent JSON structure:
 { "success": false, "message": "Description of what went wrong" }
 ```
 
-| Status | Meaning |
-|---|---|
-| `400` | Validation error — missing or invalid fields |
-| `401` | Not authenticated or token expired |
-| `403` | Authenticated but not authorized (wrong role) |
-| `404` | Resource not found |
-| `409` | Conflict — e.g. duplicate username or product name |
-| `500` | Internal server error |
+| Status | Meaning                                            |
+| ------ | -------------------------------------------------- |
+| `400`  | Validation error — missing or invalid fields       |
+| `401`  | Not authenticated or token expired                 |
+| `403`  | Authenticated but not authorized (wrong role)      |
+| `404`  | Resource not found                                 |
+| `409`  | Conflict — e.g. duplicate username or product name |
+| `500`  | Internal server error                              |
 
 ---
 
@@ -738,9 +770,9 @@ All errors return a consistent JSON structure:
 
 These accounts are automatically created on first server start.
 
-| Role | Username | Password |
-|---|---|---|
-| Admin | `admin` | `admin123` |
+| Role    | Username | Password   |
+| ------- | -------- | ---------- |
+| Admin   | `admin`  | `admin123` |
 | Cashier | `kasir1` | `kasir123` |
 
 > ⚠️ Change these passwords immediately after first login, especially in a production environment.
