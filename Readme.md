@@ -163,7 +163,7 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 |---|---|---|
 | `PORT` | Server port | `3000` |
 | `NODE_ENV` | Environment (`development` / `production`) | `development` |
-| `DATABASE_URL` | MySQL connection string | `mysql://root:@localhost:3306/marinade_fish_db` |
+| `DATABASE_URL` | MySQL connection string | `mysql://root:@localhost:3306/marile_db` |
 | `JWT_ACCESS_SECRET` | Secret key for access tokens | ⚠️ Change this |
 | `JWT_REFRESH_SECRET` | Secret key for refresh tokens | ⚠️ Change this |
 | `JWT_ACCESS_EXPIRES_IN` | Access token lifetime | `15m` |

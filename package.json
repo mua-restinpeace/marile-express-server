@@ -4,8 +4,12 @@
   "description": "a server for marile UMKM",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "dev": "npx nodemon index.js",
+    "db:migrate": "npx prisma migrate dev --name init",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio",
+    "db:reset": "npx prisma migrate reset"
   },
   "author": "mua-restinpeace",
   "license": "ISC",
