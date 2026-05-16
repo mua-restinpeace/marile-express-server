@@ -69,18 +69,29 @@ async function createUser(req, res) {
 
 /**
  * PUT /api/users/:id
- * Admin only: update user
+ * Admin: udpate any user
+ * Casher: only update their own information
  * body: { name?, role?, username?, is_active?}
  * params: id (a user id)
  */
 async function updateUser(req, res) {
   try {
     const id = req.params.id;
-    console.log(id);
     const { name, role, username, is_active } = req.body;
 
     if (id === req.user.id && is_active === false)
       return error(res, "You cannot deactivate your own account", 400);
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!updatedUser) return error(res, "User not found", 404);
+
+    if (req.user.role === "cashier") {
+      if (req.user.id !== id) return error(res, "You can only change your own information", 400);
+      if(role !== undefined) return error(res, 'You cannot update your own role', 400);
+    }
 
     const user = await prisma.user.update({
       where: { id },
