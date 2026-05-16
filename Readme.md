@@ -84,23 +84,25 @@ marile-api/
 
 The system has two authenticated roles. Public (unauthenticated) users can only access the `/api/public` endpoints.
 
-| Feature                         | Public | Admin | Cashier |
-| ------------------------------- | :----: | :---: | :-----: |
-| Browse menu & best sellers      |   ✅   |  ✅   |   ✅    |
-| Login / Logout                  |   ❌   |  ✅   |   ✅    |
-| View own profile                |   ❌   |  ✅   |   ✅    |
-| Change own password             |   ❌   |  ✅   |   ✅    |
-| Manage staff accounts           |   ❌   |  ✅   |   ❌    |
-| View products                   |   ❌   |  ✅   |   ✅    |
-| Create / Edit / Delete products |   ❌   |  ✅   |   ❌    |
-| Restock & adjust inventory      |   ❌   |  ✅   |   ❌    |
-| View inventory logs             |   ❌   |  ✅   |   ❌    |
-| Create transactions             |   ❌   |  ✅   |   ✅    |
-| View own transactions           |   ❌   |  ✅   |   ✅    |
-| View all transactions           |   ❌   |  ✅   |   ❌    |
-| Void own transactions           |   ❌   |  ✅   |   ✅    |
-| Void any transaction            |   ❌   |  ✅   |   ❌    |
-| Dashboard & reports             |   ❌   |  ✅   |   ❌    |
+| Feature                          | Public | Admin | Cashier |
+| -------------------------------- | :----: | :---: | :-----: |
+| Browse menu & best sellers       |   ✅   |  ✅   |   ✅    |
+| Login / Logout                   |   ❌   |  ✅   |   ✅    |
+| View own profile                 |   ❌   |  ✅   |   ✅    |
+| Update own name & username       |   ❌   |  ✅   |   ✅    |
+| Change own password              |   ❌   |  ✅   |   ✅    |
+| Manage staff accounts (CRUD)     |   ❌   |  ✅   |   ❌    |
+| Update any user's role or status |   ❌   |  ✅   |   ❌    |
+| View products                    |   ❌   |  ✅   |   ✅    |
+| Create / Edit / Delete products  |   ❌   |  ✅   |   ❌    |
+| Restock & adjust inventory       |   ❌   |  ✅   |   ❌    |
+| View inventory logs              |   ❌   |  ✅   |   ❌    |
+| Create transactions              |   ❌   |  ✅   |   ✅    |
+| View own transactions            |   ❌   |  ✅   |   ✅    |
+| View all transactions            |   ❌   |  ✅   |   ❌    |
+| Void own transactions            |   ❌   |  ✅   |   ✅    |
+| Void any transaction             |   ❌   |  ✅   |   ❌    |
+| Dashboard & reports              |   ❌   |  ✅   |   ❌    |
 
 ---
 
@@ -463,13 +465,36 @@ Create a new staff account.
 }
 ```
 
-#### `PUT /api/users/:id` 🔒 Admin
+#### `PUT /api/users/:id` 🔒 Admin or Cashier (own)
 
-Update name, role, or active status. Cannot deactivate your own account.
+Update user information. Behavior differs by role:
+
+**Admin** can update any user's `name`, `username`, `role`, and `is_active`. Cannot deactivate their own account.
+
+**Cashier** can only update their own `name` and `username`. Attempting to update another user's record or change `role` is rejected.
 
 ```json
-{ "name": "Kasir Dua Updated", "is_active": false }
+{ "name": "Kasir Dua Updated", "username": "kasir2baru" }
 ```
+
+**Rules enforced:**
+
+| Field       | Admin               | Cashier        |
+| ----------- | ------------------- | -------------- |
+| `name`      | Any user            | Own only       |
+| `username`  | Any user            | Own only       |
+| `role`      | Any user            | ❌ Not allowed |
+| `is_active` | Any user (not self) | ❌ Not allowed |
+
+**Error responses:**
+
+| Status | Reason                                       |
+| ------ | -------------------------------------------- |
+| `400`  | Cashier trying to update another user        |
+| `400`  | Cashier trying to update their own role      |
+| `400`  | Admin trying to deactivate their own account |
+| `400`  | Username already taken                       |
+| `404`  | User not found                               |
 
 #### `DELETE /api/users/:id` 🔒 Admin
 
@@ -477,7 +502,17 @@ Soft-delete (deactivate) a user. Also revokes all their active sessions.
 
 #### `PUT /api/users/:id/password` 🔒 Admin or Cashier (own)
 
-Admin can reset anyone's password. Cashier must provide `current_password` and can only change their own.
+Admin can reset anyone's password without needing the current password. Cashier must provide `current_password` and can only change their own. Password change revokes all active sessions for that user, forcing a re-login on all devices.
+
+**Admin request body:**
+
+```json
+{
+  "new_password": "newsecurepassword"
+}
+```
+
+**Cashier request body:**
 
 ```json
 {
