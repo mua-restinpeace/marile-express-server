@@ -30,6 +30,7 @@ const inventoryRouter = require('./src/routes/inventory');
 const productRouter = require('./src/routes/products');
 const transactionRouter = require('./src/routes/transactions');
 const dashboardRouter = require('./src/routes/dashboard');
+const publicRouter = require('./src/routes/public');
 const { seed } = require("./src/seeder");
 
 app.use(`${api}/products`, productRouter);
@@ -38,6 +39,7 @@ app.use(`${api}/users`, userRouter);
 app.use(`${api}/inventory`, inventoryRouter);
 app.use(`${api}/transactions`, transactionRouter);
 app.use(`${api}/dashboard`, dashboardRouter);
+app.use(`${api}/public`, publicRouter);
 
 
 // Error Handling

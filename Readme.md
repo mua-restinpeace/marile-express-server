@@ -15,6 +15,7 @@ Built with **Express.js**, **Prisma ORM**, and **MySQL**.
 - [Environment Variables](#environment-variables)
 - [Database Schema](#database-schema)
 - [API Reference](#api-reference)
+  - [Public](#public)
   - [Auth](#auth)
   - [Users](#users)
   - [Products](#products)
@@ -55,7 +56,8 @@ marile-api/
 │   │   ├── productController.js
 │   │   ├── inventoryController.js
 │   │   ├── transactionController.js
-│   │   └── dashboardController.js
+│   │   ├── dashboardController.js
+│   │   └── publicController.js # Public landing page - no auth required
 │   ├── middleware/
 │   │   ├── auth.js             # authenticate + authorize() middleware
 │   │   └── errorHandler.js     # Global error and 404 handler
@@ -65,7 +67,8 @@ marile-api/
 │   │   ├── products.js
 │   │   ├── inventory.js
 │   │   ├── transactions.js
-│   │   └── dashboard.js
+│   │   ├── dashboard.js
+│   │   └── public.js           # No auth middleware applied
 │   ├── utils/
 │   │   ├── jwt.js              # Token generation and verification helpers
 │   │   └── response.js         # Standardized success/error response helpers
@@ -79,24 +82,25 @@ marile-api/
 
 ## Roles & Permissions
 
-The system has two authenticated roles. Public (unauthenticated) users have no access to any API endpoint in this version.
+The system has two authenticated roles. Public (unauthenticated) users can only access the `/api/public` endpoints.
 
-| Feature                         | Admin | Cashier |
-| ------------------------------- | :---: | :-----: |
-| Login / Logout                  |  ✅   |   ✅    |
-| View own profile                |  ✅   |   ✅    |
-| Change own password             |  ✅   |   ✅    |
-| Manage staff accounts           |  ✅   |   ❌    |
-| View products                   |  ✅   |   ✅    |
-| Create / Edit / Delete products |  ✅   |   ❌    |
-| Restock & adjust inventory      |  ✅   |   ❌    |
-| View inventory logs             |  ✅   |   ❌    |
-| Create transactions             |  ✅   |   ✅    |
-| View own transactions           |  ✅   |   ✅    |
-| View all transactions           |  ✅   |   ❌    |
-| Void own transactions           |  ✅   |   ✅    |
-| Void any transaction            |  ✅   |   ❌    |
-| Dashboard & reports             |  ✅   |   ❌    |
+| Feature                         | Public | Admin | Cashier |
+| ------------------------------- | :----: | :---: | :-----: |
+| Browse menu & best sellers      |   ✅   |  ✅   |   ✅    |
+| Login / Logout                  |   ❌   |  ✅   |   ✅    |
+| View own profile                |   ❌   |  ✅   |   ✅    |
+| Change own password             |   ❌   |  ✅   |   ✅    |
+| Manage staff accounts           |   ❌   |  ✅   |   ❌    |
+| View products                   |   ❌   |  ✅   |   ✅    |
+| Create / Edit / Delete products |   ❌   |  ✅   |   ❌    |
+| Restock & adjust inventory      |   ❌   |  ✅   |   ❌    |
+| View inventory logs             |   ❌   |  ✅   |   ❌    |
+| Create transactions             |   ❌   |  ✅   |   ✅    |
+| View own transactions           |   ❌   |  ✅   |   ✅    |
+| View all transactions           |   ❌   |  ✅   |   ❌    |
+| Void own transactions           |   ❌   |  ✅   |   ✅    |
+| Void any transaction            |   ❌   |  ✅   |   ❌    |
+| Dashboard & reports             |   ❌   |  ✅   |   ❌    |
 
 ---
 
@@ -265,6 +269,89 @@ All responses follow a consistent envelope:
 // Error
 { "success": false, "message": "..." }
 ```
+
+### Public
+
+> No authentication required. These endpoints are intentionally open — they serve the public-facing landing page of the storefront.
+
+#### `GET /api/public/menu`
+
+Returns the product menu and best seller list for a given category. This is the primary data source for the landing page.
+
+**Best seller ranking** is calculated from actual completed transaction history — products that have sold the most quantity come first. If no transactions exist yet (e.g. a brand new store), the endpoint falls back to returning the newest active products instead so the landing page is never empty.
+
+**Query parameters:**
+
+| Param      | Type     | Default   | Description                                             |
+| ---------- | -------- | --------- | ------------------------------------------------------- |
+| `category` | `string` | `protein` | Filter by product category. Must be a valid enum value. |
+| `take`     | `number` | `8`       | Max number of items to return. Capped at `100`.         |
+
+**Valid category values:** `ikan_segar`, `ikan_asin`, `protein`, `olahan_ikan`, `lainnya`
+
+**Example request:**
+
+```
+GET /api/public/menu?category=protein&take=8
+```
+
+**Response `200`:**
+
+```json
+{
+  "success": true,
+  "message": "Success",
+  "data": {
+    "best_seller": [
+      {
+        "product_id": "uuid-here",
+        "product_name": "Ikan Bandeng Presto Bumbu Bali",
+        "price": 45000,
+        "image_url": "https://example.com/bandeng.jpg",
+        "total_qty_sold": 12.5
+      },
+      {
+        "product_id": "uuid-here",
+        "product_name": "Ikan Kembung Bumbu Kuning",
+        "price": 38000,
+        "image_url": "https://example.com/kembung.jpg",
+        "total_qty_sold": 8.0
+      }
+    ],
+    "menu": [
+      {
+        "id": "uuid-here",
+        "name": "Ikan Bandeng Presto Bumbu Bali",
+        "image_url": "https://example.com/bandeng.jpg",
+        "price": "45000.00"
+      },
+      {
+        "id": "uuid-here",
+        "name": "Ikan Kembung Bumbu Kuning",
+        "image_url": "https://example.com/kembung.jpg",
+        "price": "38000.00"
+      }
+    ]
+  }
+}
+```
+
+**Response fields:**
+
+| Field                          | Description                                                                                                |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| `best_seller`                  | Products ranked by total quantity sold (descending). Uses current price, not historical sale price.        |
+| `best_seller[].total_qty_sold` | Cumulative quantity sold across all completed transactions. `0` means it's a fallback item (no sales yet). |
+| `menu`                         | Full active product catalog for the given category, ordered by newest first.                               |
+
+**Error responses:**
+
+| Status | Reason                   |
+| ------ | ------------------------ |
+| `400`  | Invalid `category` value |
+| `500`  | Server error             |
+
+---
 
 ### Auth
 
