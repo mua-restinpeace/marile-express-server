@@ -5,7 +5,7 @@ const {
   generateAccessToken,
   generateRefreshToken,
   REFRESH_EXPIRES,
-  verifyRefreshTokeh,
+  verifyRefreshToken,
   expiryDate,
 } = require("../utils/jwt");
 
@@ -93,7 +93,7 @@ async function refreshToken(req, res) {
 
     let decode;
     try {
-      decode = verifyRefreshTokeh(token);
+      decode = verifyRefreshToken(token);
     } catch {
       return error(res, "Invalid or Expired token", 401);
     }
