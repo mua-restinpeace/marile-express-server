@@ -94,7 +94,7 @@ function fillMonthlyGaps(data, start, end) {
  */
 async function getSummary(req, res) {
   try {
-    const { period = "today" } = req.body;
+    const { period = "today" } = req.query;
 
     const VALID_PERIOD = ["today", "week", "month"];
     if (!VALID_PERIOD.includes(period))
@@ -153,7 +153,7 @@ async function getSummary(req, res) {
  */
 async function getRevenueChart(req, res) {
   try {
-    const { range = "30d" } = req.body;
+    const { range = "30d" } = req.query;
 
     const VALID_RANGES = ["30d", "12m"];
     if (!VALID_RANGES.includes(range))
@@ -223,7 +223,7 @@ async function getRevenueChart(req, res) {
  */
 async function getTopProducts(req, res) {
   try {
-    const { period = "today" } = req.body;
+    const { period = "today" } = req.query;
 
     const VALID_PERIODS = ["today", "week", "month", "all"];
     if (!VALID_PERIODS.includes(period))
