@@ -12,7 +12,7 @@ const prisma = require("./src/config/prisma");
 const app = express();
 const env = process.env;
 const port = env.PORT;
-const host = env.HOSTNAME;
+const host = env.HOST;
 const api = env.API_URL;
 
 // Midleware

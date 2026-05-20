@@ -18,7 +18,7 @@ function verifyAccessToken(token) {
   return jwt.verify(token, ACCESS_SECRET);
 }
 
-function verifyRefreshTokeh(token) {
+function verifyRefreshToken(token) {
   return jwt.verify(token, REFRESH_SECRET);
 }
 
@@ -37,7 +37,7 @@ module.exports = {
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
-  verifyRefreshTokeh,
+  verifyRefreshToken,
   expiryDate,
   REFRESH_EXPIRES,
 };
