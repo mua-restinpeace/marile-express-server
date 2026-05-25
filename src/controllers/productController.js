@@ -1,9 +1,12 @@
 const prisma = require("../config/prisma");
+const path = require("path");
+const fs = require("fs");
 const { success, error } = require("../utils/response");
 
 const VALID_CATEGORIES = ["sayur", "protein", "buah"];
 const VALID_UNITS = ["kg", "pcs", "ekor"];
 
+// Helper: validate prodcut body
 function validateProductBody(body, isUpdated = false) {
   const { name, category, price, unit } = body;
   const errs = [];
@@ -24,6 +27,33 @@ function validateProductBody(body, isUpdated = false) {
     errs.push("price must be a non-negative number");
 
   return errs;
+}
+
+// --Helper: delete image file from disk
+function deleteImageFile(imageUrl) {
+  if (!imageUrl) {
+    console.error("deleteImageFile: imageUrl is null");
+    return;
+  }
+
+  if (!imageUrl.startsWith("/uploads/")) {
+    console.err("deleteImageFile: imageUrl didn't start with uploads");
+    return;
+  }
+
+  const filePath = path.join(__dirname, "../../", imageUrl);
+  if (fs.existsSync(filePath)) {
+    fs.unlink(filePath, (err) => {
+      if (err) console.error("Failed to delete image file: ", err);
+    });
+  }
+}
+
+// ---Helper: build image_url from uploaded file
+function buildImageUrl(file) {
+  if (!file) return null;
+
+  return `/uploads/products/${file.filename}`;
 }
 
 /**
@@ -105,20 +135,26 @@ async function getProduct(req, res) {
  * POST /api/products
  * Admin only: create a product
  * body: { name, description?, category, price, stock, unit, image_url?}
+ * file: image (optional)
  */
 async function createProduct(req, res) {
   try {
-    const { name, description, category, price, stock, unit, image_url } =
-      req.body;
+    const { name, description, category, price, stock, unit } = req.body;
 
     const errs = validateProductBody(req.body, false);
-    if (errs.length) return error(res, errs.join(", "), 400);
+    if (errs.length) {
+      // if validation fails, delete the uploaded file
+      deleteImageFile(buildImageUrl(req.file));
+      return error(res, errs.join(", "), 400);
+    }
 
     const existingProduct = await prisma.product.findFirst({
       where: { name: name.trim() },
     });
-    if (existingProduct)
+    if (existingProduct) {
+      deleteImageFile(buildImageUrl(req.file));
       return error(res, "A product with this name already exists", 409);
+    }
 
     const product = await prisma.product.create({
       data: {
@@ -128,12 +164,13 @@ async function createProduct(req, res) {
         price: parseFloat(price),
         stock: stock !== undefined ? parseFloat(stock) : 0,
         unit: unit ?? "kg",
-        image_url: image_url?.trim() ?? null,
+        image_url: buildImageUrl(req.file),
       },
     });
 
-    return success(res, { product }, 201);
+    return success(res, { product }, "Product created successfully", 201);
   } catch (err) {
+    deleteImageFile(buildImageUrl(req.file));
     console.error("createProduct error: ", err);
     return error(res, "Failed to create product", 500);
   }
@@ -147,31 +184,45 @@ async function createProduct(req, res) {
  */
 async function updateProduct(req, res) {
   try {
-    const { name, description, category, price, unit, image_url, is_active } =
-      req.body;
+    const { name, description, category, price, unit, is_active } = req.body;
 
     // disallow stock update
-    if (req.body.stock !== undefined)
+    if (req.body.stock !== undefined) {
+      deleteImageFile(buildImageUrl(req.file));
       return error(
         res,
         "Stock cannot be changed directly. Use the inventory restock or adjustment endpoint",
         400,
       );
+    }
 
     const errs = validateProductBody(req.body, true);
-    if (errs.length) return error(res, errs.join(", "), 400);
+    if (errs.length) {
+      deleteImageFile(buildImageUrl(req.file));
+      return error(res, errs.join(", "), 400);
+    }
 
     const product = await prisma.product.findFirst({
       where: { id: req.params.id },
     });
-    if (!product) return error(res, "Product not found", 404);
+    if (!product) {
+      deleteImageFile(buildImageUrl(req.file));
+      return error(res, "Product not found", 404);
+    }
 
     if (name && name.trim() !== product.name) {
       const nameTaken = await prisma.product.findFirst({
         where: { name: name.trim() },
       });
-      if (nameTaken)
+      if (nameTaken) {
+        deleteImageFile(buildImageUrl(req.file));
         return error(res, "A product with this name already exists", 409);
+      }
+    }
+
+    // if a new image was uploaded, delete the old one
+    if (req.file) {
+      deleteImageFile(buildImageUrl(product.image_url));
     }
 
     const updatedProduct = await prisma.product.update({
@@ -182,13 +233,16 @@ async function updateProduct(req, res) {
         ...(category !== undefined && { category }),
         ...(price !== undefined && { price: parseFloat(price) }),
         ...(unit !== undefined && { unit }),
-        ...(image_url !== undefined && { image_url: image_url.trim() }),
-        ...(is_active !== undefined && { is_active }),
+        ...(is_active !== undefined && {
+          is_active: is_active === "true" || is_active === true,
+        }),
+        ...(req.file !== undefined && { image_url: buildImageUrl(req.file) }),
       },
     });
 
-    return success(res, { updateProduct });
+    return success(res, { updateProduct }, "Product updated successfully");
   } catch (err) {
+    deleteImageFile(buildImageUrl(req.file));
     if (err.code === "P2025") return error(res, "Product not found", 404);
     console.error("updateProduct error: ", err);
     return error(res, "Failed to update product", 500);
@@ -203,33 +257,64 @@ async function deleteProduct(req, res) {
   try {
     const product = await prisma.product.findUnique({
       where: { id: req.params.id },
-      select: { _count: { select: { transactionItems: true } } },
+      include: { _count: { select: { transactionItems: true } } },
     });
 
-    if(!product) return error(res, 'Product not found', 404);
+    if (!product) return error(res, "Product not found", 404);
 
-    if(product._count.transactionItems > 0){
+    if (product._count.transactionItems > 0) {
       await prisma.product.update({
-        where: {id: req.params.id},
-        data: {is_active: false},
+        where: { id: req.params.id },
+        data: { is_active: false },
       });
 
-      return success(res, null, 'Product deactivated (has transaction history, cannot permanently deleted)');
+      return success(
+        res,
+        null,
+        "Product deactivated (has transaction history, cannot permanently deleted)",
+      );
     }
 
-    await prisma.product.delete({where: {id: req.params.id}});
-    return success(res, 'Product permanently deleted');
+    deleteImageFile(product.image_url);
+    await prisma.product.delete({ where: { id: req.params.id } });
+    return success(res, "Product permanently deleted");
   } catch (err) {
-    if(err.code === 'P2025') return error(res, 'Product not found', 404);
-    console.error('deleteProduct error: ', err);
-    return error(res, 'Failed to delete product', 500);
+    if (err.code === "P2025") return error(res, "Product not found", 404);
+    console.error("deleteProduct error: ", err);
+    return error(res, "Failed to delete product", 500);
   }
 }
 
+/**
+ * DELETE /api/products/:id/image
+ * Admin only: remove product image without deleting the product
+ */
+async function deleteProductImage(req, res) {
+  try {
+    const product = await prisma.product.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!product) return error(res, "Product not found", 404);
+    if (!product.image_url) return error(res, "Product has no image", 400);
+
+    deleteImageFile(product.image_url);
+    await prisma.product.update({
+      where: { id: req.params.id },
+      data: { image_url: null },
+    });
+
+    return success(res, null, "Product image deleted");
+  } catch (err) {
+    console.error("deleteProductImage error: ", err);
+    return error(res, "Failed to delete product image", 500);
+  }
+}
 module.exports = {
   listProducts,
   getProduct,
   createProduct,
   updateProduct,
   deleteProduct,
+  deleteProductImage,
 };
