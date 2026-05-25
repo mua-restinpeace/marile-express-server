@@ -19,7 +19,6 @@ function authenticate(req, res, next) {
       role: decode.role,
       name: decode.name,
     };
-    console.log("user authenticate");
     next();
   } catch (err) {
     if (err.name === "TokenExpiredError")
