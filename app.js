@@ -19,10 +19,13 @@ const api = env.API_URL;
 // Midleware
 app.use(helmet());
 app.use(express.json());
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
-app.use(cors());
-app.use(cookieParser());
+app.use(cors({
+  origin: env.NODE_ENV == 'production' ? env.CLIENT_URL : 'http://localhost:3001',
+  credentials: true,
+}));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
