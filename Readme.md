@@ -1,6 +1,6 @@
 # 🐟 Marile API
 
-A RESTful backend API for a Marile UMKM — handling inventory management, cashier POS, and an admin dashboard.
+A RESTful backend API for a MarileUMKM — handling inventory management, cashier POS, and an admin dashboard.
 
 Built with **Express.js**, **Prisma ORM**, and **MySQL**.
 
@@ -22,9 +22,11 @@ Built with **Express.js**, **Prisma ORM**, and **MySQL**.
   - [Inventory](#inventory)
   - [Transactions](#transactions)
   - [Dashboard](#dashboard)
+  - [Export](#export)
 - [Authentication Flow](#authentication-flow)
 - [Error Handling](#error-handling)
 - [Default Accounts](#default-accounts)
+- [Database Backup & Restore](#database-backup--restore)
 
 ---
 
@@ -37,6 +39,10 @@ Built with **Express.js**, **Prisma ORM**, and **MySQL**.
 | Database         | MySQL (via Laragon)                   |
 | Authentication   | JWT (access + refresh token rotation) |
 | Password Hashing | bcryptjs (cost factor 12)             |
+| File Upload      | multer                                |
+| PDF Export       | pdfkit                                |
+| Excel Export     | exceljs                               |
+| Scheduler        | node-cron                             |
 | Runtime          | Node.js v18+                          |
 
 ---
@@ -46,21 +52,25 @@ Built with **Express.js**, **Prisma ORM**, and **MySQL**.
 ```
 marile-api/
 ├── prisma/
-│   └── schema.prisma           # Database schema — all models and enums
+│   └── schema.prisma                # Database schema — all models and enums
 ├── src/
 │   ├── config/
-│   │   └── prisma.js           # Prisma client singleton
+│   │   └── prisma.js                # Prisma client singleton
 │   ├── controllers/
-│   │   ├── authController.js   # Login, logout, token refresh
-│   │   ├── userController.js   # Staff account management
+│   │   ├── authController.js        # Login, logout, token refresh
+│   │   ├── userController.js        # Staff account management
 │   │   ├── productController.js
 │   │   ├── inventoryController.js
 │   │   ├── transactionController.js
 │   │   ├── dashboardController.js
-│   │   └── publicController.js # Public landing page - no auth required
+│   │   ├── exportPdfController.js   # PDF sales report generation
+│   │   ├── exportExcelController.js # Excel sales report generation
+│   │   ├── exportHelpers.js         # Shared data fetching and formatting
+│   │   └── publicController.js      # Public landing page — no auth required
 │   ├── middleware/
-│   │   ├── auth.js             # authenticate + authorize() middleware
-│   │   └── errorHandler.js     # Global error and 404 handler
+│   │   ├── auth.js                  # authenticate + authorize() middleware
+│   │   ├── upload.js                # multer config for product image uploads
+│   │   └── errorHandler.js          # Global error and 404 handler
 │   ├── routes/
 │   │   ├── auth.js
 │   │   ├── users.js
@@ -68,13 +78,23 @@ marile-api/
 │   │   ├── inventory.js
 │   │   ├── transactions.js
 │   │   ├── dashboard.js
-│   │   └── public.js           # No auth middleware applied
+│   │   ├── export.js                # PDF and Excel export endpoints
+│   │   └── public.js                # No auth middleware applied
+│   ├── services/
+│   │   ├── backupService.js         # mysqldump, restore, file rotation logic
+│   │   └── backupScheduler.js       # node-cron daily backup at 02:00 AM
 │   ├── utils/
-│   │   ├── jwt.js              # Token generation and verification helpers
-│   │   └── response.js         # Standardized success/error response helpers
-│   └── seeder.js               # Seeds default users and sample products
-├── index.js                    # App entry point and server bootstrap
-├── .env                        # Environment variables
+│   │   ├── jwt.js                   # Token generation and verification helpers
+│   │   └── response.js              # Standardized success/error response helpers
+│   └── seeder.js                    # Seeds default users and sample products
+├── uploads/
+│   └── products/                    # Uploaded product images (not in git)
+├── backups/                         # MySQL dump files — auto-managed (not in git)
+├── scripts/
+│   ├── backup.bat                   # Manual backup script (Windows)
+│   └── restore.bat                  # Manual restore script (Windows)
+├── index.js                         # App entry point and server bootstrap
+├── .env                             # Environment variables (not committed to git)
 └── package.json
 ```
 
@@ -103,6 +123,7 @@ The system has two authenticated roles. Public (unauthenticated) users can only 
 | Void own transactions            |   ❌   |  ✅   |   ✅    |
 | Void any transaction             |   ❌   |  ✅   |   ❌    |
 | Dashboard & reports              |   ❌   |  ✅   |   ❌    |
+| Export sales to PDF / Excel      |   ❌   |  ✅   |   ❌    |
 
 ---
 
@@ -117,7 +138,7 @@ The system has two authenticated roles. Public (unauthenticated) users can only 
 
 ```bash
 git clone https://github.com/mua-restinpeace/marile-express-server.git
-cd marile-api
+cd marile_server
 npm install
 ```
 
@@ -178,6 +199,17 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 | `JWT_REFRESH_SECRET`     | Secret key for refresh tokens              | ⚠️ Change this                           |
 | `JWT_ACCESS_EXPIRES_IN`  | Access token lifetime                      | `15m`                                    |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh token lifetime                     | `7d`                                     |
+| `DATABASE_HOST`          | MySQL host (used by backup scripts)        | `localhost`                              |
+| `DATABASE_PORT`          | MySQL port                                 | `3306`                                   |
+| `DATABASE_USER`          | MySQL user                                 | `root`                                   |
+| `DATABASE_PASSWORD`      | MySQL password                             | _(empty)_                                |
+| `DATABASE_NAME`          | MySQL database name                        | `marile_db`                              |
+| `APP_HOST`               | Server bind address                        | `localhost`                              |
+| `API_URL`                | API route prefix                           | `/api`                                   |
+| `CLIENT_URL`             | Allowed CORS origin in production          | _(your frontend URL)_                    |
+
+> ⚠️ **Never commit `.env` to version control.**
+> ⚠️ Do not use `HOSTNAME` as a variable name — it conflicts with a Windows system variable. Use `APP_HOST` instead. Change the JWT secrets before deploying to production.
 
 ---
 
@@ -209,19 +241,17 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 
 **`Product`** — Fish and related products
 
-| Field         | Type            | Notes                                     |
-| ------------- | --------------- | ----------------------------------------- |
-| `id`          | `String` (UUID) | Primary key                               |
-| `name`        | `String`        | Must be unique                            |
-| `description` | `String?`       | Optional                                  |
-| `category`    | `Enum`          | `protein`, `sayur`, `buah`, `lainnya`     |
-| `price`       | `Decimal(12,2)` | Per unit                                  |
-| `stock`       | `Decimal(10,3)` | Supports fractional weights (e.g. 0.5 kg) |
-| `unit`        | `Enum`          | `kg`, `pcs`, `ekor`                       |
-| `image_url`   | `String?`       | URL string only                           |
-| `is_active`   | `Boolean`       | Soft-delete flag                          |
-| `created_at`  | `DateTime`      |                                           |
-| `updated_at`  | `DateTime`      | Auto-updated                              |
+| Field         | Type            | Notes                                                                     |
+| ------------- | --------------- | ------------------------------------------------------------------------- |
+| `id`          | `String` (UUID) | Primary key                                                               |
+| `name`        | `String`        | Must be unique                                                            |
+| `description` | `String?`       | Optional                                                                  |
+| `category`    | `Enum`          | `protein`, `sayur`, `buah`, `lainnya`                                     |
+| `price`       | `Decimal(12,2)` | Per unit                                                                  |
+| `stock`       | `Decimal(10,3)` | Supports fractional weights (e.g. 0.5 kg)                                 |
+| `unit`        | `Enum`          | `kg`, `pcs`, `ekor`                                                       |
+| `image_url`   | `String?`       | Relative path to uploaded file — e.g. `/uploads/products/product-xxx.jpg` |
+| `is_active`   | `Boolean`       | Soft-delete flag                                                          |
 
 **`Transaction`** — Sales records
 
@@ -238,21 +268,17 @@ The server starts at `http://localhost:3000`. On first boot it auto-seeds the da
 
 **`TransactionItem`** — Line items within a transaction
 
-| Field            | Type            | Notes                             |
-| ---------------- | --------------- | --------------------------------- |
-| `id`             | `String` (UUID) | Primary key                       |
-| `transactionsId` | `String`        | FK → Transaction                  |
-| `product_name`   | `String`        | Snapshot of name at time of sale  |
-| `quantity`       | `Decimal(10,3)` |                                   |
-| `unit_price`     | `Decimal(12,2)` | Snapshot of price at time of sale |
-| `sub_total`      | `Decimal(12,2)` | `quantity × unit_price`           |
+| Field          | Type            | Notes                             |
+| -------------- | --------------- | --------------------------------- |
+| `product_name` | `String`        | Snapshot of name at time of sale  |
+| `quantity`     | `Decimal(10,3)` |                                   |
+| `unit_price`   | `Decimal(12,2)` | Snapshot of price at time of sale |
+| `sub_total`    | `Decimal(12,2)` | `quantity × unit_price`           |
 
 **`InventoryLog`** — Every stock movement, ever
 
 | Field        | Type            | Notes                                   |
 | ------------ | --------------- | --------------------------------------- |
-| `id`         | `String` (UUID) | Primary key                             |
-| `productsId` | `String`        | FK → Product                            |
 | `type`       | `Enum`          | `restock`, `sale`, `adjustment`, `void` |
 | `quantity`   | `Decimal(10,3)` | Negative for outgoing stock (sales)     |
 | `note`       | `String?`       | Required for `adjustment` type          |
@@ -284,17 +310,17 @@ Returns the product menu and best seller list for a given category. This is the 
 
 **Query parameters:**
 
-| Param      | Type     | Default   | Description                                             |
-| ---------- | -------- | --------- | ------------------------------------------------------- |
-| `category` | `string` | `protein` | Filter by product category. Must be a valid enum value. |
-| `take`     | `number` | `8`       | Max number of items to return. Capped at `100`.         |
+| Param      | Type     | Default      | Description                                             |
+| ---------- | -------- | ------------ | ------------------------------------------------------- |
+| `category` | `string` | `ikan_bumbu` | Filter by product category. Must be a valid enum value. |
+| `take`     | `number` | `8`          | Max number of items to return. Capped at `100`.         |
 
-**Valid category values:** `ikan_segar`, `ikan_asin`, `protein`, `olahan_ikan`, `lainnya`
+**Valid category values:** `protein`, `sayur`, `buah`, `lainnya`
 
 **Example request:**
 
 ```
-GET /api/public/menu?category=protein&take=8
+GET /api/public/menu?category=ikan_bumbu&take=8
 ```
 
 **Response `200`:**
@@ -446,8 +472,6 @@ Return the currently authenticated user's profile.
 
 ### Users
 
-> All endpoints require `admin` role, except `PUT /:id/password`.
-
 #### `GET /api/users` 🔒 Admin
 
 List all staff accounts.
@@ -498,7 +522,7 @@ Update user information. Behavior differs by role:
 
 #### `DELETE /api/users/:id` 🔒 Admin
 
-Soft-delete (deactivate) a user. Also revokes all their active sessions.
+Soft-delete (deactivate) a user. Also revokes all their active sessions. Cannot delete your own account.
 
 #### `PUT /api/users/:id/password` 🔒 Admin or Cashier (own)
 
@@ -557,25 +581,40 @@ Get a single product by ID.
 
 #### `POST /api/products` 🔒 Admin
 
-Create a new product.
+Create a new product. Request must be sent as **`multipart/form-data`** (not JSON) to support image file upload.
 
-```json
-{
-  "name": "Ikan Bandeng Presto Bumbu Bali",
-  "description": "Bandeng presto dengan bumbu Bali khas",
-  "category": "ikan_bumbu",
-  "price": 45000,
-  "stock": 50,
-  "unit": "ekor",
-  "image_url": "https://example.com/bandeng.jpg"
-}
+| Field         | Type     | Required | Description                                 |
+| ------------- | -------- | -------- | ------------------------------------------- |
+| `name`        | `string` | ✅       | Product name — must be unique               |
+| `category`    | `string` | ✅       | Must be a valid enum value                  |
+| `price`       | `number` | ✅       | Price per unit                              |
+| `description` | `string` | ❌       | Optional description                        |
+| `stock`       | `number` | ❌       | Initial stock (default `0`)                 |
+| `unit`        | `string` | ❌       | `kg`, `pcs`, or `ekor` (default `kg`)       |
+| `image`       | `File`   | ❌       | Product image — JPEG, PNG, or WebP, max 2MB |
+
+> **Note:** `stock` set here is the initial stock only. All subsequent stock changes must go through the inventory endpoints.
+
+**Example (using FormData in frontend):**
+
+```js
+const formData = new FormData();
+formData.append("name", "Ikan Bandeng Presto Bumbu Bali");
+formData.append("category", "protein");
+formData.append("price", "45000");
+formData.append("unit", "ekor");
+formData.append("image", fileInput.files[0]); // optional
+
+api.post("/products", formData); // do NOT set Content-Type manually
 ```
-
-> **Note:** `stock` set here is the initial stock. All subsequent stock changes must go through the inventory endpoints.
 
 #### `PUT /api/products/:id` 🔒 Admin
 
-Partial update — only include fields you want to change. **`stock` cannot be changed here** — use `/api/inventory/restock` or `/api/inventory/adjust` instead.
+Partial update — also accepts `multipart/form-data`. Sending a new `image` file replaces the old one and deletes the old file from disk. **`stock` cannot be changed here** — use `/api/inventory/restock` or `/api/inventory/adjust` instead.
+
+#### `DELETE /api/products/:id/image` 🔒 Admin
+
+Remove a product's image without deleting the product. Sets `image_url` to `null` and deletes the file from disk.
 
 #### `DELETE /api/products/:id` 🔒 Admin
 
@@ -841,6 +880,63 @@ Operational pulse — no query params, always reflects right now.
 
 ---
 
+### Export
+
+> All endpoints require `admin` role. Responses stream the file directly — no JSON envelope.
+
+Both endpoints accept the same query parameters:
+
+| Param        | Type     | Description                                     |
+| ------------ | -------- | ----------------------------------------------- |
+| `period`     | `string` | `today`, `week`, or `month` — preset date range |
+| `start_date` | `string` | Custom range start — format `YYYY-MM-DD`        |
+| `end_date`   | `string` | Custom range end — format `YYYY-MM-DD`          |
+
+Custom range (`start_date` + `end_date`) takes priority over `period` if both are provided.
+
+#### `GET /api/export/sales/pdf` 🔒 Admin
+
+Streams a PDF sales report. Contains three sections: summary metrics, product breakdown table sorted by revenue, and full transaction detail table. All amounts formatted as Indonesian Rupiah.
+
+**Example requests:**
+
+```
+GET /api/export/sales/pdf?period=month
+GET /api/export/sales/pdf?start_date=2025-04-01&end_date=2025-04-30
+```
+
+#### `GET /api/export/sales/excel` 🔒 Admin
+
+Streams an `.xlsx` file with three sheets:
+
+- **Ringkasan** — summary metrics with currency-formatted cells
+- **Penjualan per Produk** — product breakdown sorted by revenue, with a totals row
+- **Detail Transaksi** — every transaction with items summary, all amounts as Rupiah
+
+**Example requests:**
+
+```
+GET /api/export/sales/excel?period=week
+GET /api/export/sales/excel?start_date=2025-05-01&end_date=2025-05-09
+```
+
+**Triggering a download from the frontend:**
+
+```js
+const response = await api.get("/export/sales/excel?period=month", {
+  responseType: "blob",
+});
+const url = window.URL.createObjectURL(new Blob([response.data]));
+const link = document.createElement("a");
+link.href = url;
+link.setAttribute("download", "laporan-penjualan.xlsx");
+document.body.appendChild(link);
+link.click();
+link.remove();
+```
+
+---
+
 ## Authentication Flow
 
 ```
@@ -919,6 +1015,113 @@ npm run db:studio
 # Regenerate Prisma client (after manual schema edits)
 npm run db:generate
 
-# Reset database and re-run all migrations (⚠️ deletes all data)
+# Reset database and re-run all migrations (warning: deletes all data)
 npm run db:reset
+
+# Manual database backup (run from server/ directory)
+scripts\\backup.bat
+
+# Manual database restore
+scripts\\restore.bat backups\\backup-YYYYMMDD-HHMM.sql
 ```
+
+---
+
+## Database Backup & Restore
+
+### Overview
+
+Marile uses **mysqldump** for database backups. Backup files are plain `.sql` files stored in `server/backups/`. Up to **7 backup files** are kept — when a new backup is created and the count exceeds 7, the oldest file is automatically deleted.
+
+Backup filenames follow the format: `backup-YYYYMMDD-HHMM.sql`
+
+> The `backups/` and `uploads/` folders are in `.gitignore` and are never committed to git.
+
+### Prerequisites
+
+`mysqldump` and `mysql` must be in your system PATH. Laragon includes both automatically. Verify with:
+
+```bash
+mysqldump --version
+mysql --version
+```
+
+If you get "command not found", add this to your system PATH:
+
+```
+C:\laragon\bin\mysql\mysql-8.0-winx64\bin
+```
+
+### Automated Backup
+
+The backup scheduler starts automatically when the server boots. It runs every day at **02:00 AM** local time. No manual configuration required.
+
+> **Note:** Automated backups only run while the Node.js server is running. If the server is offline at 02:00 AM, that day's backup is skipped. Run a manual backup after restarting if needed.
+
+To change the backup time, edit `src/services/backupScheduler.js`:
+
+```js
+// Current: every day at 02:00 AM
+cron.schedule('0 2 * * *', ...);
+
+// Every 12 hours
+cron.schedule('0 */12 * * *', ...);
+
+// Every Sunday at 03:00 AM
+cron.schedule('0 3 * * 0', ...);
+```
+
+### Manual Backup
+
+Run from the `server/` directory:
+
+```bash
+scripts\backup.bat
+```
+
+Output:
+
+```
+[Marile Backup] Starting backup...
+[Marile Backup] Database : marile_db
+[Marile Backup] Output   : backups\backup-20250509-1430.sql
+[Marile Backup] Backup complete: backups\backup-20250509-1430.sql
+```
+
+Or using mysqldump directly:
+
+```bash
+mysqldump --host=localhost --port=3306 --user=root --password="" ^
+  --single-transaction --routines --triggers --add-drop-table ^
+  marile_db > backups/backup-manual.sql
+```
+
+### Restore
+
+> **Restore overwrites the entire current database.** All data since the backup was taken will be lost. Always take a fresh backup before restoring.
+
+Run from the `server/` directory:
+
+```bash
+scripts\restore.bat backups\backup-20250509-0200.sql
+```
+
+The script requires typing `YES` to confirm before overwriting the database.
+
+Or using mysql directly:
+
+```bash
+mysql --host=localhost --port=3306 --user=root --password="" ^
+  marile_db < backups/backup-20250509-0200.sql
+```
+
+### Including Uploaded Images in Backups
+
+The automated backup covers the **database only**. Product images stored in `uploads/` are not included. To back them up manually:
+
+```bash
+# Copy uploads folder to a safe location (Windows)
+xcopy /E /I server\uploads D:\my-backups\marile-uploads-%date%
+```
+
+For a complete backup, run both the backup script and this copy command.
