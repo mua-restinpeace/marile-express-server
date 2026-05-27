@@ -8,6 +8,7 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
+const {startBackupScheduler} = require('./src/services/backupScheduler');
 const prisma = require("./src/config/prisma");
 
 const app = express();
@@ -73,6 +74,7 @@ async function bootsrap() {
     await prisma.$connect();
     console.log("Connected to MySQL via Prisma");
     await seed();
+    startBackupScheduler();
 
     app.listen(port, host, () => {
       console.log(`Server running at http://${host}:${port}`);
