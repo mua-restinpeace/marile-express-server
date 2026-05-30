@@ -32,12 +32,12 @@ async function login(req, res) {
   try {
     const { username, password } = req.body;
     if (!username || !password)
-      return error(res, "Username and password requried", 404);
+      return error(res, "Username and password requried", 400);
 
     const user = await prisma.user.findUnique({
       where: { username: username.trim().toLowerCase() },
     });
-    if (!user || !user.is_active) return error(res, "User not found", 401);
+    if (!user || !user.is_active) return error(res, "User not found", 404);
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return error(res, "Invalid credentials", 401);
@@ -89,7 +89,7 @@ async function login(req, res) {
 async function refreshToken(req, res) {
   try {
     const token = req.cookies?.refresh_token;
-    if (!token) return error(res, "Refresh token required", 401);
+    if (!token) return error(res, "Refresh token required", 400);
 
     let decode;
     try {
