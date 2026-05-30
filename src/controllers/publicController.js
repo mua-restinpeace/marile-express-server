@@ -94,6 +94,7 @@ async function getMenu(req, res) {
         name: true,
         image_url: true,
         price: true,
+        unit: true,
       },
       take: limitNum,
       orderBy: { created_at: "desc" },
