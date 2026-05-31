@@ -21,7 +21,7 @@ const allowedImgSrc = ["'self'", 'data:'];
 if (env.NODE_ENV === 'production') {
   allowedImgSrc.push(env.CLIENT_URL);   
 } else {
-  allowedImgSrc.push('http://localhost:3001');
+  allowedImgSrc.push('http://localhost:3000');
 }
 
 // Midleware
@@ -44,7 +44,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   cors({
     origin:
-      env.NODE_ENV == "production" ? env.CLIENT_URL : "http://localhost:3001",
+      env.NODE_ENV == "production" ? env.CLIENT_URL : "http://localhost:3000",
     credentials: true,
   }),
 );
