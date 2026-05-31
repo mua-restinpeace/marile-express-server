@@ -8,7 +8,7 @@ const cookieParser = require("cookie-parser");
 const path = require("path");
 
 const { errorHandler, notFound } = require("./src/middleware/errorHandler");
-const {startBackupScheduler} = require('./src/services/backupScheduler');
+const { startBackupScheduler } = require("./src/services/backupScheduler");
 const prisma = require("./src/config/prisma");
 
 const app = express();
@@ -16,13 +16,31 @@ const env = process.env;
 const port = env.PORT;
 const host = env.HOST;
 const api = env.API_URL;
+const allowedImgSrc = ["'self'", 'data:'];
+
+if (env.NODE_ENV === 'production') {
+  allowedImgSrc.push(env.CLIENT_URL);   
+} else {
+  allowedImgSrc.push('http://localhost:3001');
+}
 
 // Midleware
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  })
+);
 app.use(express.json());
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
+app.use("/uploads", (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  next();
+});
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   cors({
     origin:
@@ -30,7 +48,6 @@ app.use(
     credentials: true,
   }),
 );
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 const authRouter = require("./src/routes/auth");
